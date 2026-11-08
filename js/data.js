@@ -89,6 +89,18 @@ export const FEATURES = [
   ...BREED_TRAITS.map((b) => ({ ...b, stage: 4 })),
 ];
 
+// 畫面上把動物按分類收在一起；每種動物放進第一個符合的分類。
+export const SECTIONS = [
+  { title: "狗（品種）", test: (a) => a.yes.includes("dog") },
+  { title: "貓（品種）", test: (a) => a.yes.includes("cat") },
+  { title: "其他哺乳類", test: (a) => a.group === "mammal" },
+  { title: "鳥類", test: (a) => a.group === "bird" },
+  { title: "魚類", test: (a) => a.group === "fish" },
+  { title: "爬蟲類", test: (a) => a.group === "reptile" },
+  { title: "兩棲類", test: (a) => a.group === "amphibian" },
+  { title: "其他（沒有骨頭的動物）", test: (a) => a.group === "other" },
+];
+
 // 狗和貓共同的細部特徵；品種只在顏色和品種特徵上不同。
 const DOG = ["dog", "fur", "pet", "legs4"];
 const CAT = ["cat", "meat", "fur", "pet", "legs4", "night"];

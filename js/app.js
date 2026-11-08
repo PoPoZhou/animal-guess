@@ -1,8 +1,8 @@
-import { ANIMALS, FEATURES, STAGES, GROUPS, COLORS, DETAILS, BREED_TRAITS } from "./data.js?v=12";
+import { ANIMALS, FEATURES, STAGES, GROUPS, COLORS, DETAILS, BREED_TRAITS, SECTIONS } from "./data.js?v=13";
 import {
   MAX_QUESTIONS, MAX_GUESSES, buildKnowledge, posterior, aliveNames,
   chooseQuestion, readyToGuess, contradictions,
-} from "./engine.js?v=12";
+} from "./engine.js?v=13";
 
 const STORE_KEY = "animal-guess-taught";
 const PAUSE = 450;
@@ -41,10 +41,19 @@ function saveTaught() {
 
 /* ---------- 思考面板 ---------- */
 
+// 把動物按 SECTIONS 分類收好：[{ title, animals }]
+const GROUPED = SECTIONS.map((s) => ({ title: s.title, animals: [] }));
+for (const a of ANIMALS) {
+  const i = SECTIONS.findIndex((s) => s.test(a));
+  GROUPED[i === -1 ? GROUPED.length - 1 : i].animals.push(a);
+}
+
 function buildChips() {
-  $("chips").innerHTML = ANIMALS.map(
-    (a) => `<div class="chip" data-name="${a.name}"><span class="e" aria-hidden="true">${a.emoji}</span>${a.name}</div>`,
-  ).join("");
+  $("chips").innerHTML = GROUPED.filter((g) => g.animals.length).map((g) => `
+    <section class="chip-group">
+      <h4><span>${g.title}</span><span class="group-count" data-total="${g.animals.length}">${g.animals.length}</span></h4>
+      <div class="chips">${g.animals.map((a) => `<div class="chip" data-name="${a.name}"><span class="e" aria-hidden="true">${a.emoji}</span>${a.name}</div>`).join("")}</div>
+    </section>`).join("");
 }
 
 function renderPanel() {
@@ -54,10 +63,17 @@ function renderPanel() {
   $("alive-count").textContent = alive.length;
   $("qno").textContent = game.answers.length;
   $("qmax").textContent = MAX_QUESTIONS;
-  for (const chip of $("chips").children) {
+  for (const chip of $("chips").querySelectorAll(".chip")) {
     const name = chip.dataset.name;
     chip.classList.toggle("out", !alive.includes(name));
     chip.classList.toggle("lead", name === post[0].name && game.answers.length > 0 && post[0].p > 0);
+  }
+  // 每個分類標題顯示「剩幾種 / 共幾種」，整類都排除了就變淡。
+  for (const group of $("chips").querySelectorAll(".chip-group")) {
+    const left = group.querySelectorAll(".chip:not(.out)").length;
+    const count = group.querySelector(".group-count");
+    count.textContent = game.answers.length ? `剩 ${left} / ${count.dataset.total}` : count.dataset.total;
+    group.classList.toggle("empty", left === 0);
   }
   $("top").innerHTML = post.slice(0, 3).map((row) => `
     <li><span>${label(row.name)}</span><span class="bar"><span style="width:${(row.p * 100).toFixed(1)}%"></span></span><span class="pct">${pct(row.p)}</span></li>`).join("");
@@ -210,7 +226,9 @@ function askReveal(text) {
     <p class="step-label">我放棄了</p>
     <p class="question">${text}你想的是哪一種？</p>
     <p class="muted">告訴我答案，我會檢討是在哪裡想錯的。</p>
-    <div class="pick-grid">${ANIMALS.map((a) => `<button data-act="reveal" data-name="${a.name}"><span class="e" aria-hidden="true">${a.emoji}</span>${a.name}</button>`).join("")}</div>`;
+    ${GROUPED.filter((g) => g.animals.length).map((g) => `
+      <h4 class="pick-title">${g.title}</h4>
+      <div class="pick-grid">${g.animals.map((a) => `<button data-act="reveal" data-name="${a.name}"><span class="e" aria-hidden="true">${a.emoji}</span>${a.name}</button>`).join("")}</div>`).join("")}`;
 }
 
 async function showReview(target, found) {
@@ -273,7 +291,9 @@ function teach(target) {
 
 function renderTable() {
   const head = `<thead><tr><th>動物</th><th>種類</th><th>顏色</th>${[...DETAILS, ...BREED_TRAITS].map((f) => `<th title="${f.question}">${f.label}</th>`).join("")}</tr></thead>`;
-  const rows = ANIMALS.map((a) => {
+  const columns = 3 + DETAILS.length + BREED_TRAITS.length;
+  const rows = GROUPED.filter((g) => g.animals.length).map((g) =>
+    `<tr class="group-row"><th colspan="${columns}">${g.title}（${g.animals.length}）</th></tr>` + g.animals.map((a) => {
     const mine = taught[a.name] || {};
     const touched = (keys) => keys.some((k) => k in mine) ? " taught" : "";
     const groupKeys = GROUPS.map((g) => g.key);
@@ -286,7 +306,7 @@ function renderTable() {
       return `<td class="${yes ? "yes" : "no"}${isTaught ? " taught" : ""}">${yes ? "✓" : "·"}</td>`;
     }).join("");
     return `<tr><td>${label(a.name)}</td>${cells}</tr>`;
-  }).join("");
+  }).join("")).join("");
   $("kb-table").innerHTML = head + `<tbody>${rows}</tbody>`;
   const count = Object.values(taught).reduce((n, row) => n + Object.keys(row).length, 0);
   $("taught-note").textContent = count ? `你已經教過 ${count} 個修正。` : "你還沒有教過任何修正。";
