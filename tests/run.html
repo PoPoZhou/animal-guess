@@ -17,8 +17,8 @@
   <h2>每種動物自動玩一局</h2>
   <table id="games"><thead><tr><th>動物</th><th>題數</th><th>問題順序</th><th>猜測</th><th>有一題答錯時</th></tr></thead><tbody></tbody></table>
   <script type="module">
-    import { ANIMALS, FEATURES, STAGES } from "../js/data.js?v=11";
-    import { buildKnowledge, autoplay, contradictions, posterior, traitList, MAX_QUESTIONS } from "../js/engine.js?v=11";
+    import { ANIMALS, FEATURES, STAGES } from "../js/data.js?v=12";
+    import { buildKnowledge, autoplay, contradictions, posterior, traitList, MAX_QUESTIONS } from "../js/engine.js?v=12";
 
     const checks = [];
     const check = (name, ok, note = "") => checks.push({ name, ok, note });
@@ -61,7 +61,7 @@
     check("第一題答錯時，至少八成仍猜得中", robust >= ANIMALS.length * 0.8, `${robust}/${ANIMALS.length}`);
 
     const post = posterior(kb, [{ key: "fly", value: true }, { key: "bird", value: false }]);
-    check("回答「會飛、沒羽毛」時，最可能是蝙蝠或會飛的昆蟲", ["蝙蝠", "蝴蝶", "蜜蜂", "蚊子"].includes(post[0].name), post[0].name);
+    check("回答「會飛、沒羽毛」時，最可能是蝙蝠", ["蝙蝠"].includes(post[0].name), post[0].name);
     check("「不確定」不影響判斷", posterior(kb, [{ key: "fly", value: null }])[0].p === 1 / ANIMALS.length);
     const c = contradictions(kb, "企鵝", [{ key: "fly", value: true }, { key: "cold", value: true }, { key: "pet", value: null }]);
     check("檢討時找得出和表不合的答案", c.length === 1 && c[0].key === "fly");
