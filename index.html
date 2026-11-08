@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>猜猜我心裡的動物</title>
   <meta name="description" content="你在心裡想一種動物，AI 一題一題問，並把推理過程攤開給你看。">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <header class="top">
@@ -40,9 +40,10 @@
       <h2>AI 是怎麼被教會的</h2>
       <ol class="rules">
         <li><strong>知識表：</strong>下面這張表記錄每種動物有哪些特徵。AI 只知道表上的東西。</li>
-        <li><strong>選題規則：</strong>每次挑一題，讓「回答是」和「回答否」留下的可能性最接近一半，這樣每題都能刪掉最多。</li>
+        <li><strong>分階段問：</strong>先問種類（哺乳類、鳥類、魚類……），再問顏色（最多 3 題），最後問細部特徵。上一個階段已經分不出差別，才進到下一個階段。</li>
+        <li><strong>選題規則：</strong>在同一個階段裡，挑「回答是」和「回答否」留下的動物最接近一半的問題，這樣每題都能刪掉最多。</li>
         <li><strong>容錯規則：</strong>你的答案和表不合時，AI 不會直接刪掉那種動物，只把可能性降成原本的 5%，因為你也可能答錯。</li>
-        <li><strong>開口規則：</strong>最可能的動物把握度到 75%、問滿 10 題，或剩下的問題分不開時，AI 就猜。最多猜 3 次。</li>
+        <li><strong>開口規則：</strong>剩下的問題都分不開、而且至少問過 3 題細部特徵時，AI 才猜；細部特徵不夠，就先問「確認題」，確認最可能的那種動物。問滿 15 題也會直接猜。最多猜 3 次。</li>
         <li><strong>學習：</strong>猜錯後，你可以教 AI 修正表格。修正只存在這台瀏覽器裡，顯示成黃色格子。</li>
       </ol>
       <p class="taught-note" id="taught-note"></p>
@@ -57,6 +58,6 @@
     AI 的推理完全照知識表和規則進行，表上沒有的知識它不會知道，也可能因為表格不完整而猜錯。
   </footer>
 
-  <script type="module" src="app.js?v=5"></script>
+  <script type="module" src="app.js?v=8"></script>
 </body>
 </html>

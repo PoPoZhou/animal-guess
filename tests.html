@@ -15,23 +15,23 @@
   <p id="summary">執行中…</p>
   <ul id="checks"></ul>
   <h2>每種動物自動玩一局</h2>
-  <table id="games"><thead><tr><th>動物</th><th>題數</th><th>猜測</th><th>有一題答錯時</th></tr></thead><tbody></tbody></table>
+  <table id="games"><thead><tr><th>動物</th><th>題數</th><th>問題順序</th><th>猜測</th><th>有一題答錯時</th></tr></thead><tbody></tbody></table>
   <script type="module">
-    import { ANIMALS, FEATURES } from "./data.js";
-    import { buildKnowledge, autoplay, contradictions, posterior, MAX_QUESTIONS } from "./engine.js";
+    import { ANIMALS, FEATURES, STAGES } from "./data.js?v=8";
+    import { buildKnowledge, autoplay, contradictions, posterior, traitList, MAX_QUESTIONS } from "./engine.js?v=8";
 
     const checks = [];
     const check = (name, ok, note = "") => checks.push({ name, ok, note });
     const kb = buildKnowledge(ANIMALS);
     const keys = new Set(FEATURES.map((f) => f.key));
 
-    const unknown = ANIMALS.flatMap((a) => a.yes.filter((k) => !keys.has(k)).map((k) => `${a.name}:${k}`));
+    const unknown = ANIMALS.flatMap((a) => traitList(a).filter((k) => !keys.has(k)).map((k) => `${a.name}:${k}`));
     check("知識表只用到已定義的特徵", !unknown.length, unknown.join("、"));
 
     const seen = {};
     const dupes = [];
     for (const a of ANIMALS) {
-      const sig = [...a.yes].sort().join(",");
+      const sig = [...traitList(a)].sort().join(",");
       if (seen[sig]) dupes.push(`${seen[sig]} = ${a.name}`);
       seen[sig] = a.name;
     }
@@ -41,23 +41,26 @@
     check("動物名稱不重複", names.size === ANIMALS.length);
 
     const rows = [];
-    let firstTry = 0, robust = 0, maxQ = 0;
+    let firstTry = 0, robust = 0, maxQ = 0, orderOk = true, sumQ = 0;
     const misses = [];
     for (const a of ANIMALS) {
-      const honest = autoplay(kb, FEATURES, a.name);
+      const honest = autoplay(kb, FEATURES, a.name, null, STAGES);
       if (!honest.found) misses.push(a.name);
       if (honest.found && honest.guesses.length === 1) firstTry += 1;
-      maxQ = Math.max(maxQ, honest.questions);
-      const lie = autoplay(kb, FEATURES, a.name, 0);
+      maxQ = Math.max(maxQ, honest.questions); sumQ += honest.questions;
+      const st = honest.asked.map((q) => q.stage); if (st.some((v, i) => i && v < st[i - 1])) orderOk = false;
+      if (honest.asked[0]?.stage !== 1) orderOk = false;
+      const lie = autoplay(kb, FEATURES, a.name, 0, STAGES);
       if (lie.found) robust += 1;
-      rows.push(`<tr><td>${a.emoji} ${a.name}</td><td>${honest.questions}</td><td>${honest.guesses.join(" → ")}</td><td>${lie.found ? "仍猜中" : "沒猜中"}（${lie.guesses.join(" → ")}）</td></tr>`);
+      rows.push(`<tr><td>${a.emoji} ${a.name}</td><td>${honest.questions}</td><td>${honest.asked.map((q) => q.feature.label).join(" → ")}</td><td>${honest.guesses.join(" → ")}</td><td>${lie.found ? "仍猜中" : "沒猜中"}（${lie.guesses.join(" → ")}）</td></tr>`);
     }
     check("誠實回答時，每種動物都猜得中", !misses.length, misses.join("、"));
     check("誠實回答時，每種動物第一次就猜中", firstTry === ANIMALS.length, `${firstTry}/${ANIMALS.length}`);
     check(`每局最多 ${MAX_QUESTIONS} 題`, maxQ <= MAX_QUESTIONS, `最多 ${maxQ} 題`);
+    check("每局都照「種類 → 顏色 → 細部特徵」的順序問", orderOk, `平均 ${(sumQ / ANIMALS.length).toFixed(1)} 題`);
     check("第一題答錯時，至少八成仍猜得中", robust >= ANIMALS.length * 0.8, `${robust}/${ANIMALS.length}`);
 
-    const post = posterior(kb, [{ key: "fly", value: true }, { key: "feathers", value: false }]);
+    const post = posterior(kb, [{ key: "fly", value: true }, { key: "bird", value: false }]);
     check("回答「會飛、沒羽毛」時，最可能是蝙蝠或會飛的昆蟲", ["蝙蝠", "蝴蝶", "蜜蜂", "蚊子"].includes(post[0].name), post[0].name);
     check("「不確定」不影響判斷", posterior(kb, [{ key: "fly", value: null }])[0].p === 1 / ANIMALS.length);
     const c = contradictions(kb, "企鵝", [{ key: "fly", value: true }, { key: "cold", value: true }, { key: "pet", value: null }]);

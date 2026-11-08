@@ -1,8 +1,8 @@
-import { ANIMALS, FEATURES } from "./data.js";
+import { ANIMALS, FEATURES, STAGES, GROUPS, COLORS, DETAILS } from "./data.js?v=8";
 import {
   MAX_QUESTIONS, MAX_GUESSES, buildKnowledge, posterior, aliveNames,
   chooseQuestion, readyToGuess, contradictions,
-} from "./engine.js";
+} from "./engine.js?v=8";
 
 const STORE_KEY = "animal-guess-taught";
 const PAUSE = 450;
@@ -84,13 +84,13 @@ async function think(lines, head) {
 /* ---------- 遊戲流程 ---------- */
 
 function newGame() {
-  game = { answers: [], excluded: [], guesses: [], steps: [], current: null };
+  game = { answers: [], excluded: [], guesses: [], steps: [], current: null, stage: 0 };
   $("log").innerHTML = "";
   renderPanel();
   stage.innerHTML = `
     <p class="step-label">準備</p>
     <p class="question">請從右邊的 ${ANIMALS.length} 種動物裡，在心裡選一種。</p>
-    <p class="muted">不用告訴我。我會一題一題問，最多問 ${MAX_QUESTIONS} 題、猜 ${MAX_GUESSES} 次。每次我怎麼想的，都會寫在右邊。</p>
+    <p class="muted">不用告訴我。我會分三個階段問：先問<strong>種類</strong>，再問<strong>顏色</strong>，最後問<strong>細部特徵</strong>。最多問 ${MAX_QUESTIONS} 題、猜 ${MAX_GUESSES} 次，每一步怎麼想的都會寫在右邊。</p>
     <div class="answers"><button class="btn primary" data-act="start">我想好了，開始</button></div>`;
 }
 
@@ -104,26 +104,38 @@ function showThinking(text = "思考中") {
 
 async function nextMove() {
   const { post } = renderPanel();
-  if (readyToGuess(kb, FEATURES, game.answers, game.excluded)) {
+  if (readyToGuess(kb, FEATURES, game.answers, game.excluded, STAGES)) {
     const top = post[0];
     if (top.p === 0) return askReveal("候選都被排除了，我想不出還有哪種動物。");
     let reason;
-    if (top.p >= 0.75) reason = `我對 ${top.name} 有 ${pct(top.p)} 的把握，可以猜了。`;
+    const alive = aliveNames(post);
+    if (alive.length === 1 && alive[0] === top.name) reason = `只剩 ${top.name} 和你的答案最吻合，把握 ${pct(top.p)}，可以猜了。`;
     else if (game.answers.length >= MAX_QUESTIONS) reason = `已經問滿 ${MAX_QUESTIONS} 題，只能用目前最可能的答案猜。`;
     else reason = "剩下的問題都分不開這幾種動物了，直接猜最可能的。";
     await think([reason]);
     return showGuess(top);
   }
-  const pick = chooseQuestion(kb, FEATURES, game.answers, game.excluded);
+  const pick = chooseQuestion(kb, FEATURES, game.answers, game.excluded, STAGES);
   game.current = pick;
-  const why = `回答「是」會留下 ${pick.ifYes.length} 種，回答「否」會留下 ${pick.ifNo.length} 種，最接近對半切，不管你怎麼答都能刪掉很多。`;
+  const info = STAGES.find((s) => s.id === pick.stage);
+  if (pick.stage !== game.stage) {
+    const from = STAGES.find((s) => s.id === game.stage);
+    const lines = [];
+    if (from) lines.push(`「${from.name}」階段問完了。`);
+    lines.push(info.intro);
+    game.stage = pick.stage;
+    await think(lines, `階段 ${info.id}：${info.name}`);
+  }
+  const why = pick.confirm
+    ? `我心裡已經有答案了：${pick.confirm}。開口前再確認一個牠的特徵：我的表寫牠是「${word(pick.expect)}」。如果你的回答不一樣，代表可能有一題答錯，我會重新想。`
+    : `回答「是」會留下 ${pick.ifYes.length} 種，回答「否」會留下 ${pick.ifNo.length} 種。在「${info.name}」的問題裡，這題最接近對半切，不管你怎麼答都能刪掉很多。`;
   await think([`下一題問「${pick.feature.label}」：${why}`]);
-  showQuestion(pick, why);
+  showQuestion(pick, why, info);
 }
 
-function showQuestion(pick, why) {
+function showQuestion(pick, why, info) {
   stage.innerHTML = `
-    <p class="step-label">第 ${game.answers.length + 1} 題 / 最多 ${MAX_QUESTIONS} 題</p>
+    <p class="step-label">第 ${game.answers.length + 1} 題 / 最多 ${MAX_QUESTIONS} 題 · 階段 ${info.id}：${info.name}</p>
     <p class="question">${pick.feature.question}</p>
     <div class="answers">
       <button class="btn primary" data-act="yes">是</button>
@@ -145,6 +157,8 @@ async function answer(value) {
   const back = after.filter((name) => !before.includes(name));
   if (value === null) lines.push("你不確定，這題我不拿來判斷，換別的問題。");
   else if (back.length) lines.push(`沒有動物完全符合你的答案，可能有一題答錯了。我放寬條件，把只差一點的 ${listNames(back)} 找回來。`);
+  else if (pick.confirm && value === pick.expect) lines.push(`和我想的一樣，更確定是 ${pick.confirm} 了。`);
+  else if (pick.confirm) lines.push(`和我想的不一樣！${pick.confirm} 不太對，我要重新想。`);
   else if (removed.length) lines.push(`排除 ${removed.length} 種：${listNames(removed)}。`);
   else lines.push("這題沒有排除任何動物。");
   lines.push(`還剩 ${after.length} 種可能。`);
@@ -255,9 +269,15 @@ function teach(target) {
 /* ---------- 知識表 ---------- */
 
 function renderTable() {
-  const head = `<thead><tr><th>動物</th>${FEATURES.map((f) => `<th title="${f.question}">${f.label}</th>`).join("")}</tr></thead>`;
+  const head = `<thead><tr><th>動物</th><th>種類</th><th>顏色</th>${DETAILS.map((f) => `<th title="${f.question}">${f.label}</th>`).join("")}</tr></thead>`;
   const rows = ANIMALS.map((a) => {
-    const cells = FEATURES.map((f) => {
+    const mine = taught[a.name] || {};
+    const touched = (keys) => keys.some((k) => k in mine) ? " taught" : "";
+    const groupKeys = GROUPS.map((g) => g.key);
+    const colorKeys = COLORS.map((c) => `c_${c.key}`);
+    const groups = GROUPS.filter((g) => kb[a.name].has(g.key)).map((g) => g.label).join("、") || "—";
+    const colors = COLORS.filter((c) => kb[a.name].has(`c_${c.key}`)).map((c) => c.label).join("、") || "—";
+    const cells = `<td class="${touched(groupKeys)}">${groups}</td><td class="${touched(colorKeys)}">${colors}</td>` + DETAILS.map((f) => {
       const yes = kb[a.name].has(f.key);
       const isTaught = taught[a.name] && f.key in taught[a.name];
       return `<td class="${yes ? "yes" : "no"}${isTaught ? " taught" : ""}">${yes ? "✓" : "·"}</td>`;
