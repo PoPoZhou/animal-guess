@@ -15,7 +15,6 @@ export const GROUPS = [
   { key: "fish", label: "魚類", question: "牠是魚類嗎？" },
   { key: "reptile", label: "爬蟲類", question: "牠是爬蟲類嗎？（像蛇、蜥蜴、烏龜、鱷魚）" },
   { key: "amphibian", label: "兩棲類", question: "牠是兩棲類嗎？（像青蛙）" },
-  { key: "insect", label: "昆蟲", question: "牠是昆蟲嗎？（六隻腳，像蝴蝶、螞蟻）" },
   { key: "other", label: "其他", question: "牠是沒有骨頭的小動物嗎？（像蜘蛛、螃蟹、蝸牛、章魚）" },
 ];
 
@@ -179,11 +178,6 @@ export const ANIMALS = [
   { name: "蛇", emoji: "🐍", group: "reptile", colors: ["green", "brown"], yes: ["meat", "venom"] },
   { name: "蜥蜴", emoji: "🦎", group: "reptile", colors: ["green", "brown"], yes: ["meat", "legs4"] },
   { name: "青蛙", emoji: "🐸", group: "amphibian", colors: ["green"], yes: ["meat", "jump", "small"] },
-  // 昆蟲
-  { name: "蝴蝶", emoji: "🦋", group: "insect", colors: ["yellow", "blue", "black"], yes: ["fly", "spots", "small"] },
-  { name: "蜜蜂", emoji: "🐝", group: "insect", colors: ["yellow", "black"], yes: ["fly", "stripes", "small", "venom"] },
-  { name: "蚊子", emoji: "🦟", group: "insect", colors: ["black", "gray"], yes: ["fly", "small", "night"] },
-  { name: "螞蟻", emoji: "🐜", group: "insect", colors: ["black"], yes: ["small"] },
   // 其他沒有骨頭的動物
   { name: "蜘蛛", emoji: "🕷️", group: "other", colors: ["black"], yes: ["meat", "small", "venom"] },
   { name: "蝸牛", emoji: "🐌", group: "other", colors: ["brown"], yes: ["small", "shell"] },

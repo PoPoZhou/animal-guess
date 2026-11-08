@@ -1,8 +1,8 @@
-import { ANIMALS, FEATURES, STAGES, GROUPS, COLORS, DETAILS, BREED_TRAITS } from "./data.js?v=11";
+import { ANIMALS, FEATURES, STAGES, GROUPS, COLORS, DETAILS, BREED_TRAITS } from "./data.js?v=12";
 import {
   MAX_QUESTIONS, MAX_GUESSES, buildKnowledge, posterior, aliveNames,
   chooseQuestion, readyToGuess, contradictions,
-} from "./engine.js?v=11";
+} from "./engine.js?v=12";
 
 const STORE_KEY = "animal-guess-taught";
 const PAUSE = 450;
