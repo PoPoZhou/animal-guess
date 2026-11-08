@@ -4,7 +4,7 @@
 export const SLIP = 0.05;
 // 最可能的動物把握度到這個值，就開口猜。
 export const CONFIDENT = 0.75;
-export const MAX_QUESTIONS = 15;
+export const MAX_QUESTIONS = 20;
 export const MAX_GUESSES = 3;
 // 開口猜之前，至少要問幾題細部特徵（不夠就問確認題）。
 export const MIN_DETAILS = 3;
@@ -59,7 +59,7 @@ export function aliveNames(post) {
   return live.filter((row) => row.misses === fewest).map((row) => row.name);
 }
 
-// 挑下一題。問題分階段（種類 → 顏色 → 細部特徵），依序進行：
+// 挑下一題。問題分階段（種類 → 顏色 → 細部特徵 → 品種），依序進行：
 // 目前階段還有能把剩下的動物分開的問題，而且還沒問滿該階段的題數，就從這個階段挑；
 // 否則進到下一個階段。同一階段裡，選「回答是」和「回答否」最接近對半切的問題。
 export function chooseQuestion(kb, features, answers, excluded = [], stages = []) {
@@ -75,7 +75,14 @@ export function chooseQuestion(kb, features, answers, excluded = [], stages = []
     if (feature) used[stageOf(feature)] = (used[stageOf(feature)] || 0) + 1;
   }
   const order = [...new Set(features.map(stageOf))].sort((a, b) => a - b);
+  // 從「細部特徵」開始的問題都算深入的問題；開口前至少要問 MIN_DETAILS 題。
+  const confirmStage = stages.find((s) => s.confirm)?.id ?? order[order.length - 1];
+  const deep = () => order.filter((s) => s >= confirmStage).reduce((n, s) => n + (used[s] || 0), 0);
+  const share = (key) => Object.values(kb).filter((set) => set.has(key)).length;
+  // 已經進到的最後一個階段；不回頭問前面的階段，順序才不會亂。
+  const highest = Math.max(0, ...Object.keys(used).map(Number));
   for (const stage of order) {
+    if (stage < highest) continue;
     const limit = stages.find((s) => s.id === stage)?.limit ?? Infinity;
     if ((used[stage] || 0) >= limit) continue;
     let best = null;
@@ -87,14 +94,21 @@ export function chooseQuestion(kb, features, answers, excluded = [], stages = []
       if (!best || score < best.score - 1e-9) best = { feature, yesMass, score };
     }
     if (best) return finish(best, stage);
+    // 細部特徵分不開剩下的動物（例如剩下的都是狗），離開這個階段前，
+    // 先確認牠們共同的特徵（例如「牠是狗嗎？」）。
+    if (stage === confirmStage && alive.size > 1 && deep() < MIN_DETAILS) {
+      const common = features
+        .filter((f) => stageOf(f) === stage && !asked.has(f.key) && weights.every((row) => kb[row.name].has(f.key)))
+        .sort((a, b) => share(a.key) - share(b.key));
+      if (common.length) return finish({ feature: common[0], common: alive.size, expect: true }, stage);
+    }
   }
 
-  // 分不開了，但細部特徵問得還不夠：挑一題「確認題」，
-  // 問目前最可能的動物最有特色的特徵（越少動物有的越有特色）。
-  const last = order[order.length - 1];
+  // 只剩一種，但深入的問題問得還不夠：在目前的階段挑一題「確認題」，
+  // 問最可能的動物最有特色的特徵（越少動物有的越有特色）。
   const top = weights[0];
-  if (!top || (used[last] || 0) >= MIN_DETAILS) return null;
-  const share = (key) => Object.values(kb).filter((set) => set.has(key)).length;
+  if (!top || deep() >= MIN_DETAILS) return null;
+  const last = Math.max(highest, confirmStage);
   const options = features
     .filter((f) => stageOf(f) === last && !asked.has(f.key))
     .sort((a, b) => {

@@ -1,10 +1,11 @@
 // 知識表：教 AI 的資料。要改 AI 的知識，改這個檔案就好，不用動其他程式。
-// AI 分三個階段問：先問種類，再問顏色，最後問細部特徵。
+// AI 分四個階段問：種類 → 顏色 → 細部特徵 → 品種（只有狗和貓分到品種）。
 
 export const STAGES = [
   { id: 1, name: "種類", limit: 6, intro: "先判斷牠是哪一類動物。" },
   { id: 2, name: "顏色", limit: 3, intro: "種類大致確定了，接著看牠的顏色。" },
-  { id: 3, name: "細部特徵", limit: 99, intro: "最後用細部特徵把剩下的分開。" },
+  { id: 3, name: "細部特徵", limit: 99, intro: "接著用細部特徵把剩下的分開。", confirm: true },
+  { id: 4, name: "品種", limit: 99, intro: "已經知道是哪一種動物了，最後用外型特徵分辨品種。" },
 ];
 
 // 第一階段：種類（每種動物只屬於一類）
@@ -60,6 +61,25 @@ export const DETAILS = [
   { key: "cold", label: "住冷處", question: "牠住在很冷的地方嗎？" },
   { key: "shell", label: "硬殼", question: "牠有硬硬的殼嗎？" },
   { key: "venom", label: "有毒", question: "牠有毒，或會螫人嗎？" },
+  { key: "dog", label: "是狗", question: "牠是狗嗎？" },
+  { key: "cat", label: "是貓", question: "牠是貓嗎？" },
+];
+
+// 第四階段：品種特徵（只有狗和貓分到品種）
+export const BREED_TRAITS = [
+  { key: "toy", label: "特別小", question: "跟一般的狗或貓比，牠的體型特別小嗎？" },
+  { key: "large", label: "特別大", question: "跟一般的狗或貓比，牠的體型特別大嗎？" },
+  { key: "longhair", label: "長毛", question: "牠的毛很長、很蓬嗎？" },
+  { key: "curly", label: "捲毛", question: "牠的毛是捲捲的嗎？" },
+  { key: "flatface", label: "扁臉", question: "牠的臉扁扁的、鼻子很短嗎？" },
+  { key: "wrinkles", label: "皺紋", question: "牠的臉上或身上有很多皺紋嗎？" },
+  { key: "shortlegs", label: "短腿", question: "牠的腿特別短嗎？" },
+  { key: "upears", label: "立耳", question: "牠的耳朵是立起來的嗎？" },
+  { key: "foldears", label: "垂耳", question: "牠的耳朵是垂下來或折下來的嗎？" },
+  { key: "curltail", label: "捲尾", question: "牠的尾巴是捲起來的嗎？" },
+  { key: "blueeyes", label: "藍眼", question: "牠常有藍色的眼睛嗎？" },
+  { key: "work", label: "工作犬", question: "牠常被訓練來工作嗎？（導盲、警犬、牧羊、拉雪橇）" },
+  { key: "eastern", label: "亞洲品種", question: "牠是從亞洲（例如日本、泰國）來的品種嗎？" },
 ];
 
 // 所有問題，依階段排好。
@@ -67,13 +87,41 @@ export const FEATURES = [
   ...GROUPS.map((g) => ({ ...g, stage: 1 })),
   ...COLORS.map((c) => ({ key: `c_${c.key}`, label: c.label, question: `牠身上常見的顏色有${COLOR_WORDS[c.key]}嗎？`, stage: 2 })),
   ...DETAILS.map((d) => ({ ...d, stage: 3 })),
+  ...BREED_TRAITS.map((b) => ({ ...b, stage: 4 })),
 ];
+
+// 狗和貓共同的細部特徵；品種只在顏色和品種特徵上不同。
+const DOG = ["dog", "fur", "pet", "legs4"];
+const CAT = ["cat", "meat", "fur", "pet", "legs4", "night"];
 
 // group：種類；colors：常見顏色；yes：細部特徵中「是」的項目（沒列出的就是「否」）
 export const ANIMALS = [
+  // 狗的品種
+  { name: "柴犬", emoji: "🐕", group: "mammal", colors: ["yellow", "white"], yes: [...DOG, "upears", "curltail", "eastern"] },
+  { name: "秋田犬", emoji: "🐕", group: "mammal", colors: ["yellow", "white"], yes: [...DOG, "large", "upears", "curltail", "eastern"] },
+  { name: "哈士奇", emoji: "🐺", group: "mammal", colors: ["gray", "white", "black"], yes: [...DOG, "upears", "blueeyes", "work"] },
+  { name: "柯基", emoji: "🐕", group: "mammal", colors: ["yellow", "white"], yes: [...DOG, "shortlegs", "upears"] },
+  { name: "黃金獵犬", emoji: "🦮", group: "mammal", colors: ["yellow"], yes: [...DOG, "large", "longhair", "foldears", "work"] },
+  { name: "拉布拉多", emoji: "🦮", group: "mammal", colors: ["yellow", "black", "brown"], yes: [...DOG, "large", "foldears", "work"] },
+  { name: "德國牧羊犬", emoji: "🐕‍🦺", group: "mammal", colors: ["brown", "black"], yes: [...DOG, "large", "upears", "work"] },
+  { name: "貴賓犬", emoji: "🐩", group: "mammal", colors: ["white", "brown", "black"], yes: [...DOG, "toy", "curly", "foldears"] },
+  { name: "吉娃娃", emoji: "🐕", group: "mammal", colors: ["yellow", "brown", "black", "white"], yes: [...DOG, "toy", "upears"] },
+  { name: "博美", emoji: "🐕", group: "mammal", colors: ["yellow", "white"], yes: [...DOG, "toy", "longhair", "upears", "curltail"] },
+  { name: "法國鬥牛犬", emoji: "🐶", group: "mammal", colors: ["black", "white", "brown"], yes: [...DOG, "flatface", "upears"] },
+  { name: "巴哥犬", emoji: "🐶", group: "mammal", colors: ["yellow", "black"], yes: [...DOG, "flatface", "wrinkles", "foldears", "curltail"] },
+  { name: "臘腸狗", emoji: "🐕", group: "mammal", colors: ["brown", "black"], yes: [...DOG, "shortlegs", "foldears"] },
+  // 貓的品種
+  { name: "英國短毛貓", emoji: "🐱", group: "mammal", colors: ["gray"], yes: [...CAT, "upears"] },
+  { name: "美國短毛貓", emoji: "🐱", group: "mammal", colors: ["gray", "black", "white"], yes: [...CAT, "upears", "stripes"] },
+  { name: "蘇格蘭折耳貓", emoji: "🐱", group: "mammal", colors: ["gray", "white"], yes: [...CAT, "foldears"] },
+  { name: "波斯貓", emoji: "🐈", group: "mammal", colors: ["white", "gray"], yes: [...CAT, "longhair", "flatface"] },
+  { name: "暹羅貓", emoji: "🐈", group: "mammal", colors: ["white", "brown"], yes: [...CAT, "upears", "blueeyes", "eastern"] },
+  { name: "布偶貓", emoji: "🐈", group: "mammal", colors: ["white", "gray", "brown"], yes: [...CAT, "large", "longhair", "blueeyes"] },
+  { name: "緬因貓", emoji: "🐈", group: "mammal", colors: ["brown", "gray"], yes: [...CAT, "large", "longhair", "upears"] },
+  { name: "曼赤肯貓", emoji: "🐈", group: "mammal", colors: ["gray", "brown", "white"], yes: [...CAT, "shortlegs", "upears"] },
+  { name: "無毛貓", emoji: "🐈", group: "mammal", colors: ["red", "gray"], yes: ["cat", "meat", "pet", "legs4", "night", "upears", "wrinkles"] },
+  { name: "孟加拉貓", emoji: "🐆", group: "mammal", colors: ["yellow", "black"], yes: [...CAT, "spots", "upears"] },
   // 哺乳類：家裡和農場
-  { name: "狗", emoji: "🐶", group: "mammal", colors: ["brown", "white", "black"], yes: ["fur", "pet", "legs4"] },
-  { name: "貓", emoji: "🐱", group: "mammal", colors: ["black", "white", "gray", "yellow"], yes: ["meat", "fur", "pet", "legs4", "night"] },
   { name: "兔子", emoji: "🐰", group: "mammal", colors: ["white", "gray", "brown"], yes: ["fur", "pet", "legs4", "jump", "ears"] },
   { name: "倉鼠", emoji: "🐹", group: "mammal", colors: ["brown", "white", "yellow"], yes: ["fur", "small", "pet", "legs4", "night"] },
   { name: "老鼠", emoji: "🐭", group: "mammal", colors: ["gray", "brown"], yes: ["fur", "small", "legs4", "night"] },

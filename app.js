@@ -1,8 +1,8 @@
-import { ANIMALS, FEATURES, STAGES, GROUPS, COLORS, DETAILS } from "./data.js?v=8";
+import { ANIMALS, FEATURES, STAGES, GROUPS, COLORS, DETAILS, BREED_TRAITS } from "./data.js?v=10";
 import {
   MAX_QUESTIONS, MAX_GUESSES, buildKnowledge, posterior, aliveNames,
   chooseQuestion, readyToGuess, contradictions,
-} from "./engine.js?v=8";
+} from "./engine.js?v=10";
 
 const STORE_KEY = "animal-guess-taught";
 const PAUSE = 450;
@@ -90,7 +90,7 @@ function newGame() {
   stage.innerHTML = `
     <p class="step-label">準備</p>
     <p class="question">請從右邊的 ${ANIMALS.length} 種動物裡，在心裡選一種。</p>
-    <p class="muted">不用告訴我。我會分三個階段問：先問<strong>種類</strong>，再問<strong>顏色</strong>，最後問<strong>細部特徵</strong>。最多問 ${MAX_QUESTIONS} 題、猜 ${MAX_GUESSES} 次，每一步怎麼想的都會寫在右邊。</p>
+    <p class="muted">不用告訴我。我會分四個階段問：先問<strong>種類</strong>，再問<strong>顏色</strong>，接著問<strong>細部特徵</strong>；如果是狗或貓，最後還會問到<strong>品種</strong>。最多問 ${MAX_QUESTIONS} 題、猜 ${MAX_GUESSES} 次，每一步怎麼想的都會寫在右邊。</p>
     <div class="answers"><button class="btn primary" data-act="start">我想好了，開始</button></div>`;
 }
 
@@ -126,7 +126,9 @@ async function nextMove() {
     game.stage = pick.stage;
     await think(lines, `階段 ${info.id}：${info.name}`);
   }
-  const why = pick.confirm
+  const why = pick.common
+    ? `剩下的 ${pick.common} 種都有「${pick.feature.label}」這個特徵，這個階段的問題已經分不開牠們。進到下一步前，先確認牠們共同的特徵；如果你答「否」，代表前面可能有一題答錯。`
+    : pick.confirm
     ? `我心裡已經有答案了：${pick.confirm}。開口前再確認一個牠的特徵：我的表寫牠是「${word(pick.expect)}」。如果你的回答不一樣，代表可能有一題答錯，我會重新想。`
     : `回答「是」會留下 ${pick.ifYes.length} 種，回答「否」會留下 ${pick.ifNo.length} 種。在「${info.name}」的問題裡，這題最接近對半切，不管你怎麼答都能刪掉很多。`;
   await think([`下一題問「${pick.feature.label}」：${why}`]);
@@ -157,6 +159,7 @@ async function answer(value) {
   const back = after.filter((name) => !before.includes(name));
   if (value === null) lines.push("你不確定，這題我不拿來判斷，換別的問題。");
   else if (back.length) lines.push(`沒有動物完全符合你的答案，可能有一題答錯了。我放寬條件，把只差一點的 ${listNames(back)} 找回來。`);
+  else if (pick.common && value === pick.expect) lines.push(`確認了，剩下的 ${pick.common} 種都符合，接著往下分。`);
   else if (pick.confirm && value === pick.expect) lines.push(`和我想的一樣，更確定是 ${pick.confirm} 了。`);
   else if (pick.confirm) lines.push(`和我想的不一樣！${pick.confirm} 不太對，我要重新想。`);
   else if (removed.length) lines.push(`排除 ${removed.length} 種：${listNames(removed)}。`);
@@ -269,7 +272,7 @@ function teach(target) {
 /* ---------- 知識表 ---------- */
 
 function renderTable() {
-  const head = `<thead><tr><th>動物</th><th>種類</th><th>顏色</th>${DETAILS.map((f) => `<th title="${f.question}">${f.label}</th>`).join("")}</tr></thead>`;
+  const head = `<thead><tr><th>動物</th><th>種類</th><th>顏色</th>${[...DETAILS, ...BREED_TRAITS].map((f) => `<th title="${f.question}">${f.label}</th>`).join("")}</tr></thead>`;
   const rows = ANIMALS.map((a) => {
     const mine = taught[a.name] || {};
     const touched = (keys) => keys.some((k) => k in mine) ? " taught" : "";
@@ -277,7 +280,7 @@ function renderTable() {
     const colorKeys = COLORS.map((c) => `c_${c.key}`);
     const groups = GROUPS.filter((g) => kb[a.name].has(g.key)).map((g) => g.label).join("、") || "—";
     const colors = COLORS.filter((c) => kb[a.name].has(`c_${c.key}`)).map((c) => c.label).join("、") || "—";
-    const cells = `<td class="${touched(groupKeys)}">${groups}</td><td class="${touched(colorKeys)}">${colors}</td>` + DETAILS.map((f) => {
+    const cells = `<td class="${touched(groupKeys)}">${groups}</td><td class="${touched(colorKeys)}">${colors}</td>` + [...DETAILS, ...BREED_TRAITS].map((f) => {
       const yes = kb[a.name].has(f.key);
       const isTaught = taught[a.name] && f.key in taught[a.name];
       return `<td class="${yes ? "yes" : "no"}${isTaught ? " taught" : ""}">${yes ? "✓" : "·"}</td>`;

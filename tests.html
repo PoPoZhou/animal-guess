@@ -17,8 +17,8 @@
   <h2>每種動物自動玩一局</h2>
   <table id="games"><thead><tr><th>動物</th><th>題數</th><th>問題順序</th><th>猜測</th><th>有一題答錯時</th></tr></thead><tbody></tbody></table>
   <script type="module">
-    import { ANIMALS, FEATURES, STAGES } from "./data.js?v=8";
-    import { buildKnowledge, autoplay, contradictions, posterior, traitList, MAX_QUESTIONS } from "./engine.js?v=8";
+    import { ANIMALS, FEATURES, STAGES } from "./data.js?v=10";
+    import { buildKnowledge, autoplay, contradictions, posterior, traitList, MAX_QUESTIONS } from "./engine.js?v=10";
 
     const checks = [];
     const check = (name, ok, note = "") => checks.push({ name, ok, note });
@@ -57,7 +57,7 @@
     check("誠實回答時，每種動物都猜得中", !misses.length, misses.join("、"));
     check("誠實回答時，每種動物第一次就猜中", firstTry === ANIMALS.length, `${firstTry}/${ANIMALS.length}`);
     check(`每局最多 ${MAX_QUESTIONS} 題`, maxQ <= MAX_QUESTIONS, `最多 ${maxQ} 題`);
-    check("每局都照「種類 → 顏色 → 細部特徵」的順序問", orderOk, `平均 ${(sumQ / ANIMALS.length).toFixed(1)} 題`);
+    check("每局都照「種類 → 顏色 → 細部特徵 → 品種」的順序問", orderOk, `平均 ${(sumQ / ANIMALS.length).toFixed(1)} 題`);
     check("第一題答錯時，至少八成仍猜得中", robust >= ANIMALS.length * 0.8, `${robust}/${ANIMALS.length}`);
 
     const post = posterior(kb, [{ key: "fly", value: true }, { key: "bird", value: false }]);
