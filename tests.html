@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>推理測試</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px 16px; line-height: 1.6; background: #fff; color: #222; }
+    .pass { color: #1d7a4f; } .fail { color: #b3261e; font-weight: 700; }
+    table { border-collapse: collapse; font-size: 14px; } td, th { border-bottom: 1px solid #ddd; padding: 4px 10px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>推理測試</h1>
+  <p id="summary">執行中…</p>
+  <ul id="checks"></ul>
+  <h2>每種動物自動玩一局</h2>
+  <table id="games"><thead><tr><th>動物</th><th>題數</th><th>猜測</th><th>有一題答錯時</th></tr></thead><tbody></tbody></table>
+  <script type="module">
+    import { ANIMALS, FEATURES } from "./data.js";
+    import { buildKnowledge, autoplay, contradictions, posterior, MAX_QUESTIONS } from "./engine.js";
+
+    const checks = [];
+    const check = (name, ok, note = "") => checks.push({ name, ok, note });
+    const kb = buildKnowledge(ANIMALS);
+    const keys = new Set(FEATURES.map((f) => f.key));
+
+    const unknown = ANIMALS.flatMap((a) => a.yes.filter((k) => !keys.has(k)).map((k) => `${a.name}:${k}`));
+    check("知識表只用到已定義的特徵", !unknown.length, unknown.join("、"));
+
+    const seen = {};
+    const dupes = [];
+    for (const a of ANIMALS) {
+      const sig = [...a.yes].sort().join(",");
+      if (seen[sig]) dupes.push(`${seen[sig]} = ${a.name}`);
+      seen[sig] = a.name;
+    }
+    check("每種動物的特徵組合都不一樣", !dupes.length, dupes.join("、"));
+
+    const names = new Set(ANIMALS.map((a) => a.name));
+    check("動物名稱不重複", names.size === ANIMALS.length);
+
+    const rows = [];
+    let firstTry = 0, robust = 0, maxQ = 0;
+    const misses = [];
+    for (const a of ANIMALS) {
+      const honest = autoplay(kb, FEATURES, a.name);
+      if (!honest.found) misses.push(a.name);
+      if (honest.found && honest.guesses.length === 1) firstTry += 1;
+      maxQ = Math.max(maxQ, honest.questions);
+      const lie = autoplay(kb, FEATURES, a.name, 0);
+      if (lie.found) robust += 1;
+      rows.push(`<tr><td>${a.emoji} ${a.name}</td><td>${honest.questions}</td><td>${honest.guesses.join(" → ")}</td><td>${lie.found ? "仍猜中" : "沒猜中"}（${lie.guesses.join(" → ")}）</td></tr>`);
+    }
+    check("誠實回答時，每種動物都猜得中", !misses.length, misses.join("、"));
+    check("誠實回答時，每種動物第一次就猜中", firstTry === ANIMALS.length, `${firstTry}/${ANIMALS.length}`);
+    check(`每局最多 ${MAX_QUESTIONS} 題`, maxQ <= MAX_QUESTIONS, `最多 ${maxQ} 題`);
+    check("第一題答錯時，至少八成仍猜得中", robust >= ANIMALS.length * 0.8, `${robust}/${ANIMALS.length}`);
+
+    const post = posterior(kb, [{ key: "fly", value: true }, { key: "feathers", value: false }]);
+    check("回答「會飛、沒羽毛」時，最可能是蝙蝠或蝴蝶", ["蝙蝠", "蝴蝶"].includes(post[0].name), post[0].name);
+    check("「不確定」不影響判斷", posterior(kb, [{ key: "fly", value: null }])[0].p === 1 / ANIMALS.length);
+    const c = contradictions(kb, "企鵝", [{ key: "fly", value: true }, { key: "cold", value: true }, { key: "pet", value: null }]);
+    check("檢討時找得出和表不合的答案", c.length === 1 && c[0].key === "fly");
+    const taughtKb = buildKnowledge(ANIMALS, { 企鵝: { fly: true, cold: false } });
+    check("教過的修正會改變知識表", taughtKb["企鵝"].has("fly") && !taughtKb["企鵝"].has("cold"));
+
+    document.querySelector("#games tbody").innerHTML = rows.join("");
+    document.getElementById("checks").innerHTML = checks
+      .map((c) => `<li class="${c.ok ? "pass" : "fail"}">${c.ok ? "通過" : "失敗"}：${c.name}${c.note ? `（${c.note}）` : ""}</li>`).join("");
+    const failed = checks.filter((c) => !c.ok).length;
+    const summary = document.getElementById("summary");
+    summary.textContent = failed ? `${failed} 項失敗，共 ${checks.length} 項` : `全部 ${checks.length} 項通過`;
+    summary.className = failed ? "fail" : "pass";
+    window.testResult = { failed, total: checks.length, maxQ, firstTry, robust };
+  </script>
+</body>
+</html>

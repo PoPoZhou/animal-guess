@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>猜猜我心裡的動物</title>
+  <meta name="description" content="你在心裡想一種動物，AI 一題一題問，並把推理過程攤開給你看。">
+  <link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>猜猜我心裡的動物</h1>
+      <p class="tagline">你在心裡想一種動物，AI 一題一題問，並把它怎麼想的攤開給你看。</p>
+    </div>
+    <nav class="tabs" aria-label="頁面">
+      <button type="button" data-view="game" aria-pressed="true">玩一局</button>
+      <button type="button" data-view="table" aria-pressed="false">AI 的知識表</button>
+    </nav>
+  </header>
+
+  <main id="view-game" class="layout">
+    <section class="card stage" id="stage" aria-live="polite"></section>
+
+    <aside class="card think" aria-label="AI 的思考">
+      <div class="think-head">
+        <h2>AI 的思考</h2>
+        <p class="stat"><strong id="alive-count">32</strong> 種可能 · 第 <strong id="qno">0</strong> / <span id="qmax">10</span> 題</p>
+      </div>
+      <div id="chips" class="chips"></div>
+      <h3>目前最可能</h3>
+      <ol id="top" class="top-list"></ol>
+      <h3>思考紀錄</h3>
+      <ol id="log" class="log"></ol>
+    </aside>
+  </main>
+
+  <main id="view-table" class="table-view" hidden>
+    <section class="card">
+      <h2>AI 是怎麼被教會的</h2>
+      <ol class="rules">
+        <li><strong>知識表：</strong>下面這張表記錄每種動物有哪些特徵。AI 只知道表上的東西。</li>
+        <li><strong>選題規則：</strong>每次挑一題，讓「回答是」和「回答否」留下的可能性最接近一半，這樣每題都能刪掉最多。</li>
+        <li><strong>容錯規則：</strong>你的答案和表不合時，AI 不會直接刪掉那種動物，只把可能性降成原本的 5%，因為你也可能答錯。</li>
+        <li><strong>開口規則：</strong>最可能的動物把握度到 75%、問滿 10 題，或剩下的問題分不開時，AI 就猜。最多猜 3 次。</li>
+        <li><strong>學習：</strong>猜錯後，你可以教 AI 修正表格。修正只存在這台瀏覽器裡，顯示成黃色格子。</li>
+      </ol>
+      <p class="taught-note" id="taught-note"></p>
+      <button type="button" class="ghost" id="reset-taught">清除我教過的修正</button>
+    </section>
+    <section class="card table-wrap">
+      <table id="kb-table"></table>
+    </section>
+  </main>
+
+  <footer class="foot">
+    AI 的推理完全照知識表和規則進行，表上沒有的知識它不會知道，也可能因為表格不完整而猜錯。
+  </footer>
+
+  <script type="module" src="app.js?v=4"></script>
+</body>
+</html>
