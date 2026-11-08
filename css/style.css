@@ -94,6 +94,7 @@ button:disabled { cursor: default; opacity: 0.5; }
   border-radius: 10px; padding: 8px 4px; display: flex; flex-direction: column; align-items: center;
 }
 .pick-grid .e { font-size: 1.6rem; }
+.pick-title { margin: 8px 0 0; font-size: 0.9rem; color: var(--muted); font-weight: 600; }
 .review { margin: 0; padding-left: 20px; }
 .review li { margin-bottom: 6px; }
 
@@ -101,7 +102,16 @@ button:disabled { cursor: default; opacity: 0.5; }
 .think-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .stat { margin: 0; color: var(--muted); }
 .stat strong { color: var(--ink); }
-.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; margin-top: 14px; }
+.chip-groups { margin-top: 10px; max-height: 460px; overflow-y: auto; padding-right: 4px; }
+.chip-group { margin-top: 10px; transition: opacity 0.5s; }
+.chip-group.empty { opacity: 0.4; }
+.chip-group h4 {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  margin: 0 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--line);
+  font-size: 0.85rem; font-weight: 600; color: var(--ink);
+}
+.group-count { color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
 .chip {
   border: 1px solid var(--line); border-radius: 10px; padding: 4px 2px; text-align: center; font-size: 0.8rem;
   transition: opacity 0.5s, transform 0.5s, background 0.5s;
@@ -132,6 +142,7 @@ button:disabled { cursor: default; opacity: 0.5; }
 #kb-table td.yes { color: var(--accent); font-weight: 700; }
 #kb-table td.no { color: var(--line); }
 #kb-table td.taught { background: var(--warn-soft); }
+#kb-table tr.group-row th { text-align: left; position: sticky; left: 0; background: var(--accent-soft); color: var(--ink); padding: 8px; font-size: 0.9rem; }
 
 .foot { max-width: 1120px; margin: 0 auto; padding: 8px 16px 32px; color: var(--muted); font-size: 0.85rem; }
 
